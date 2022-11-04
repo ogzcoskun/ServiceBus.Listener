@@ -11,5 +11,6 @@ namespace ServiceBus.Listener.App.Models
         public double Price { get; set; }
         public string Date { get; set; }
         public string UserMail { get; set; }
+        public string Phone { get; set; }
     }
 }

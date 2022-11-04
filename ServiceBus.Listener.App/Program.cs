@@ -40,6 +40,23 @@ namespace ServiceBus.Listener.App
 
         private static async Task ExecuteMessageProcessing(Message message, CancellationToken arg2)
         {
+
+            await SendEmail(message);
+            await SendSms(message);
+
+            //Console.WriteLine($"Order Id is {result.UserMail}, Order name is {result.Price} and quantity is {result.UserMail}");
+
+            client.CompleteAsync(message.SystemProperties.LockToken);
+        }
+        private static async Task ExceptionMethod(ExceptionReceivedEventArgs arg)
+        {
+            await Task.Run(() =>
+           Console.WriteLine($"Error occured. Error is {arg.Exception.Message}")
+           );
+        }
+
+        private static async Task SendEmail(Message message)
+        {
             var result = JsonConvert.DeserializeObject<OrderModel>(Encoding.UTF8.GetString(message.Body));
 
             var mailModel = new MailModel()
@@ -61,16 +78,29 @@ namespace ServiceBus.Listener.App
             request.AddJsonBody(mailToSend);
             var response = restClient.Execute(request);
 
-
-            Console.WriteLine($"Order Id is {result.UserMail}, Order name is {result.Price} and quantity is {result.UserMail}");
-
-            client.CompleteAsync(message.SystemProperties.LockToken);
         }
-        private static async Task ExceptionMethod(ExceptionReceivedEventArgs arg)
+
+        private static async Task SendSms(Message message)
         {
-            await Task.Run(() =>
-           Console.WriteLine($"Error occured. Error is {arg.Exception.Message}")
-           );
+            var result = JsonConvert.DeserializeObject<OrderModel>(Encoding.UTF8.GetString(message.Body));
+
+            var sms = new SmsModel()
+            {
+                Phone = result.Phone,
+                Message = result.OrderId,
+            };
+
+            var smsToSend = JsonConvert.SerializeObject(sms);
+
+            var restClient = new RestClient
+            {
+                BaseUrl = new Uri($"https://localhost:44386/Sms/SendSms")
+            };
+
+            var request = new RestRequest();
+            request.Method = Method.POST;
+            request.AddJsonBody(smsToSend);
+            var response = restClient.Execute(request);
         }
 
     }
